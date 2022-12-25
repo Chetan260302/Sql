@@ -6,16 +6,13 @@ select * from job_data
 /*Number of jobs reviewed: Amount of jobs reviewed over time.
 Your task: Calculate the number of jobs reviewed per hour per day for November 2020?*/
 
-select 
-cast(sum(jobsReviewed)/cast(24 as decimal)/cast(30 as decimal) as decimal(10,5))  as jobs_reviewed_per_hour
-from(
-select count(*) as jobsReviewed
+select ds,cast(count(*)/sum(time_spent)*3600 as decimal(10,2))  as jobsReviewed
 from job_data
 where ds between '2020-11-01' and '2020-11-30'
-and event in('transfer','decision'))x
+group by ds
 
 /*Throughput: It is the no. of events happening per second.
-Your task: Let’s say the above metric is called throughput.
+Your task: Letâ€™s say the above metric is called throughput.
 Calculate 7 day rolling average of throughput? For throughput, do you prefer daily metric or 7-day rolling and why?*/
 
 select ds,throughput,avg(throughput) over(order by ds rows between 6 preceding  and current row) as rolling_average from(
@@ -36,7 +33,7 @@ from job_data
 group by language
 
 /*Duplicate rows: Rows that have the same value present in them.
-Your task: Let’s say you see some duplicate rows in the data. How will you display duplicates from the table?*/
+Your task: Letâ€™s say you see some duplicate rows in the data. How will you display duplicates from the table?*/
 
 select * from(
 select *,
@@ -90,9 +87,18 @@ datepart(week,occurred_at)
 /*Email Engagement: Users engaging with the email service.
 Your task: Calculate the email engagement metrics?*/
 
-select action,count(*) as users_engaging
+select week,cast(email_open_rate*100/cast(total as decimal) as decimal(10,2)),
+cast(email_clickthrough_rate*100/cast(total as decimal) as decimal(10,2)),
+cast(sent_weekly_digest_rate*100/cast(total as decimal) as decimal(10,2)),
+cast(sent_reengagement_email_rate*100/cast(total as decimal) as decimal(10,2))
+from
+(select datepart(week,occurred_at) as week,
+count(case when action='email_open' then user_id else null end ) as email_open_rate,
+count(case when action='email_clickthrough' then user_id else null end) as email_clickthrough_rate,
+count(case when action='sent_weekly_digest' then user_id else null end) as sent_weekly_digest_rate,
+count(case when action='sent_reengagement_email' then user_id else null end) as sent_reengagement_email_rate,
+count(user_id) as total
 from [Table-3 email_events]
-group by action
-
+group by datepart(week,occurred_at))x
 
 
